@@ -49,6 +49,36 @@ func (s *Server) handleWSOrderbook(ws *websocket.Conn) {
 	}
 }
 
+// progress of process
+func (s *Server) handleProgress(ws *websocket.Conn) {
+	fmt.Println("New connection for progress tracking:", ws.RemoteAddr())
+
+	total := 10 // Total steps in the process
+	for i := 1; i <= total; i++ {
+		// Simulate processing time for each step
+		time.Sleep(time.Second)
+
+		// Calculate progress percentage
+		progress := float64(i) / float64(total) * 100
+
+		// Create a payload containing progress details
+		payload := fmt.Sprintf("{\"step\": %d, \"total\": %d, \"progress\": %.2f}", i, total, progress)
+
+		// Send the progress payload to the client
+		if _, err := ws.Write([]byte(payload)); err != nil {
+			fmt.Println("Write error:", err)
+			return
+		}
+		time.Sleep(time.Second * 2)
+	}
+
+	// Notify the client that processing is complete
+	completionMessage := "{\"status\": \"complete\", \"message\": \"Processing complete!\"}"
+	if _, err := ws.Write([]byte(completionMessage)); err != nil {
+		fmt.Println("Write error on completion:", err)
+	}
+}
+
 // 4.
 // อ่านข้อความจาก client
 func (s *Server) readLoop(ws *websocket.Conn) {
@@ -89,6 +119,8 @@ func main() {
 	http.Handle("/ws", websocket.Handler(server.handlews))
 	//กำหนด route ที่ server จะส่งข้อความกลับในทุกๆ 2 วินาที
 	http.Handle("/orderbookfeed", websocket.Handler(server.handleWSOrderbook))
+	//
+	http.Handle("/progress", websocket.Handler(server.handleProgress))
 	http.ListenAndServe(":3000", nil)
 
 }
